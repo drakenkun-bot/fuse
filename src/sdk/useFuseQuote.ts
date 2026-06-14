@@ -49,6 +49,15 @@ export function useFuseQuote(selections: Selection[]): UseFuseQuoteResult {
       tokens: active.map((s) => s.walletToken.token.symbol),
       outputUsdc: Number(result.outputUsdc.toFixed(2)),
     });
+    if (typeof pendo !== "undefined") {
+      pendo.track("Quote Generated", {
+        tokens: active.map((s) => s.walletToken.token.symbol),
+        outputUsdc: Number(result.outputUsdc.toFixed(2)),
+        totalFeesUsd: Number(result.totalFeesUsd.toFixed(2)),
+        worstImpact: Number(result.worstImpact.toFixed(2)),
+        tokenCount: active.length,
+      });
+    }
   }, [selections]);
 
   useEffect(() => {
