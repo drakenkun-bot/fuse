@@ -14,9 +14,20 @@ export function parsePubkey(raw: string): PublicKey | null {
   }
 }
 
-/** Mainnet RPC endpoint. */
+/**
+ * Mainnet RPC endpoint. Resolution order:
+ *   1. NEXT_PUBLIC_SOLANA_RPC (explicit override)
+ *   2. Helius RPC derived from NEXT_PUBLIC_HELIUS_API_KEY (CORS-friendly)
+ *   3. The public mainnet-beta endpoint (rate-limits / blocks browsers — last resort)
+ */
 export function getClusterEndpoint(): string {
-  return process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl("mainnet-beta");
+  const explicit = process.env.NEXT_PUBLIC_SOLANA_RPC;
+  if (explicit) return explicit;
+
+  const helius = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
+  if (helius) return `https://mainnet.helius-rpc.com/?api-key=${helius}`;
+
+  return clusterApiUrl("mainnet-beta");
 }
 
 /** Explorer link for a transaction signature. */

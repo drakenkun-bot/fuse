@@ -6,10 +6,11 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { clusterApiUrl } from "@solana/web3.js";
 import { Buffer } from "buffer";
 
+import { getClusterEndpoint } from "@/sdk/settlement";
 import { PendoInitializer } from "./PendoInitializer";
+
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 // web3.js expects a global Buffer in the browser.
@@ -24,10 +25,7 @@ if (!g.Buffer) g.Buffer = Buffer;
  * connect modal without bundling individual adapters.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  const endpoint = useMemo(
-    () => process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl("mainnet-beta"),
-    [],
-  );
+  const endpoint = useMemo(() => getClusterEndpoint(), []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
