@@ -9,6 +9,7 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import { Buffer } from "buffer";
 
+import { PendoInitializer } from "./PendoInitializer";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 // web3.js expects a global Buffer in the browser.
@@ -31,7 +32,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={[]} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <PendoInitializer />
+          {children}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
