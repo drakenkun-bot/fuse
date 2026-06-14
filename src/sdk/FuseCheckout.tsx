@@ -75,7 +75,18 @@ export function FuseCheckout({
 
   // Fire "Checkout Opened" once when shown.
   useEffect(() => {
-    if (open) track("Checkout Opened", { amount, merchant: merchantName });
+    if (open) {
+      track("Checkout Opened", { amount, merchant: merchantName });
+      if (typeof pendo !== "undefined") {
+        pendo.track("Checkout Opened", {
+          amount,
+          merchantName,
+          currency,
+          productName,
+          embedded,
+        });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -87,13 +98,35 @@ export function FuseCheckout({
         const tokens = await fetchWalletTokens(connection, pk);
         if (!tokens.length) {
           setBalanceError("No supported tokens found in this wallet.");
+          if (typeof pendo !== "undefined") {
+            pendo.track("Wallet Load Failed", {
+              reason: "no_supported_tokens",
+              walletAddress: pk.toBase58(),
+              errorType: "empty_wallet",
+            });
+          }
           return;
         }
         setWallet(tokens);
         setStep("select");
         track("Wallet Connected", { address: pk.toBase58() });
+        if (typeof pendo !== "undefined") {
+          pendo.track("Wallet Connected", {
+            address: pk.toBase58(),
+            tokenCount: tokens.length,
+            totalValueUsd: tokens.reduce((s, t) => s + t.valueUsd, 0),
+            tokenSymbols: tokens.map((t) => t.token.symbol),
+          });
+        }
       } catch {
         setBalanceError("Couldn't reach the network. Set an RPC in .env and retry.");
+        if (typeof pendo !== "undefined") {
+          pendo.track("Wallet Load Failed", {
+            reason: "network_error",
+            walletAddress: pk.toBase58(),
+            errorType: "rpc_failure",
+          });
+        }
       } finally {
         setLoadingBalances(false);
       }
@@ -140,8 +173,18 @@ export function FuseCheckout({
         delete next[wt.token.symbol];
       } else {
         const stillNeeded = Math.max(0, amount - Object.values(next).reduce((a, b) => a + b, 0));
-        next[wt.token.symbol] = Math.min(wt.valueUsd, stillNeeded || wt.valueUsd);
+        const allocatedUsd = Math.min(wt.valueUsd, stillNeeded || wt.valueUsd);
+        next[wt.token.symbol] = allocatedUsd;
         track("Token Selected", { symbol: wt.token.symbol });
+        if (typeof pendo !== "undefined") {
+          pendo.track("Token Selected", {
+            symbol: wt.token.symbol,
+            auto: false,
+            allocatedUsd,
+            tokenBalance: wt.balance,
+            tokenValueUsd: wt.valueUsd,
+          });
+        }
       }
       return next;
     });
@@ -168,6 +211,12 @@ export function FuseCheckout({
     }
     setAllocations(next);
     track("Token Selected", { symbol: "auto", auto: true });
+    if (typeof pendo !== "undefined") {
+      pendo.track("Token Selected", {
+        symbol: "auto",
+        auto: true,
+      });
+    }
   }
 
   async function pay() {
@@ -202,6 +251,21 @@ export function FuseCheckout({
     setStep("connect");
   }
 
+  function handleClose() {
+    if (step !== "success" && typeof pendo !== "undefined") {
+      pendo.track("Checkout Abandoned", {
+        step,
+        amount,
+        merchantName,
+        selectedUsd,
+        tokenCount: Object.keys(allocations).length,
+        walletConnected: connected,
+        quoteGenerated: outputUsdc > 0,
+      });
+    }
+    onClose?.();
+  }
+
   const walletValue = useMemo(() => wallet.reduce((s, w) => s + w.valueUsd, 0), [wallet]);
   const busy = status !== "idle" && status !== "error";
 
@@ -217,7 +281,7 @@ export function FuseCheckout({
         </div>
         {!embedded && (
           <button
-            onClick={() => onClose?.()}
+            onClick={handleClose}
             className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/5 hover:text-white"
           >
             <X className="h-5 w-5" />
@@ -579,7 +643,7 @@ export function FuseCheckout({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => onClose?.()} />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
           <motion.div
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

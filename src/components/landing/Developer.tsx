@@ -31,6 +31,12 @@ export function Developer() {
     navigator.clipboard?.writeText(SNIPPET);
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
+    if (typeof pendo !== "undefined") {
+      pendo.track("Code Snippet Copied", {
+        snippetLength: SNIPPET.length,
+        source: "landing_developer",
+      });
+    }
   }
 
   return (

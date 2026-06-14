@@ -44,6 +44,14 @@ export function useFuseExecute(): UseFuseExecute {
     setError(null);
     const tokens = selections.filter((s) => s.amount > 0).map((s) => s.walletToken.token.symbol);
     track("Payment Started", { tokens, amountUsd, mode: "mainnet" });
+    if (typeof pendo !== "undefined") {
+      pendo.track("Payment Started", {
+        tokens,
+        amountUsd,
+        mode: "mainnet",
+        tokenCount: tokens.length,
+      });
+    }
 
     const report: StageReport = (s, label) => {
       setStatus(s);
@@ -73,11 +81,31 @@ export function useFuseExecute(): UseFuseExecute {
         txHash: payment.txHash,
         mode: "mainnet",
       });
+      if (typeof pendo !== "undefined") {
+        pendo.track("Payment Completed", {
+          tokens,
+          amountUsd,
+          usdc: Number(payment.merchantReceivedUsdc.toFixed(2)),
+          txHash: payment.txHash,
+          mode: "mainnet",
+          tokenCount: tokens.length,
+          completedAt: new Date().toISOString(),
+        });
+      }
     } catch (e) {
       setStatus("error");
       const msg = e instanceof Error ? e.message : "Payment failed";
       setError(msg);
       track("Payment Failed", { tokens, amountUsd, mode: "mainnet", error: msg });
+      if (typeof pendo !== "undefined") {
+        pendo.track("Payment Failed", {
+          tokens,
+          amountUsd,
+          mode: "mainnet",
+          error_msg: msg,
+          tokenCount: tokens.length,
+        });
+      }
     }
   }, []);
 

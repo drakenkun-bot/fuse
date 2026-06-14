@@ -30,6 +30,8 @@ export const FUSE_EVENT_BUS = "fuse:event";
 declare global {
   // eslint-disable-next-line no-var
   var __novus__: { track: (e: string, p?: Record<string, unknown>) => void } | undefined;
+  // eslint-disable-next-line no-var
+  var pendo: { track: (event: string, properties?: Record<string, unknown>) => void } | undefined;
 }
 
 function read(): TrackedEvent[] {
